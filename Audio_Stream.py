@@ -3,6 +3,7 @@ import soundfile as sf
 from scipy.fft import fft
 import matplotlib.pyplot as plt
 # Assignment 2- CAS748
+#short time fourier transform
 
 def read_audio(file_path):
     data, samplerate = sf.read(file_path)
