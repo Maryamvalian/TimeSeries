@@ -1,17 +1,23 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import csv
 
 # -------------------------------
-# 1. Generate Synthetic Time Series Data
+# 1. Read Time Series Data from CSV
 # -------------------------------
-np.random.seed(42)
-n = 200
-t = np.arange(n)
-trend = 0.05 * t                      # Linear trend component
-seasonal_period = 24                  # Assume a period (e.g., daily seasonality if data were hourly)
-seasonal = 10 * np.sin(2 * np.pi * t / seasonal_period)  # Seasonal component
-noise = np.random.normal(0, 1, size=n)  # Random noise
-ts = trend + seasonal + noise         # Combine all components
+def read_data(filename):
+    data = []
+    with open(filename, 'r') as file:
+        reader = csv.reader(file)
+        next(reader)  # skip header
+        for row in reader:
+            data.append(float(row[1]))  # second column of CSV
+    return np.array(data)
+
+# Update 'data.csv' to your actual CSV file path.
+filename = 'Daily_stocks.csv'
+ts = read_data(filename)
+t = np.arange(len(ts))  # time axis for plotting
 
 # Plot the original time series
 plt.figure(figsize=(10, 4))
@@ -54,15 +60,15 @@ def remove_seasonality(ts, period):
     """
     seasonal = np.zeros(period)
     counts = np.zeros(period)
-    # Accumulate values for each position within the season
     for i in range(len(ts)):
         seasonal[i % period] += ts[i]
         counts[i % period] += 1
     seasonal = seasonal / counts
-    # Subtract the seasonal pattern from each data point
     deseasonalized = np.array([ts[i] - seasonal[i % period] for i in range(len(ts))])
     return deseasonalized, seasonal
 
+# Set the seasonal period; adjust as needed for your data.
+seasonal_period = 24
 ts_deseasonalized, seasonal_pattern = remove_seasonality(ts_detrended, seasonal_period)
 
 # Plot the deseasonalized series
@@ -100,7 +106,6 @@ def fit_linear_regression(X, y):
     Fits a linear regression model to predict y from lagged features in X.
     Returns coefficients including an intercept (bias) term.
     """
-    # Add a bias term (column of ones)
     X_bias = np.column_stack([np.ones(X.shape[0]), X])
     coeffs, _, _, _ = np.linalg.lstsq(X_bias, y, rcond=None)
     return coeffs
@@ -114,13 +119,13 @@ def forecast(model_coeffs, history, lags, steps):
     Starts with the last 'lags' values from history and forecasts 'steps' ahead.
     """
     predictions = []
-    current_history = list(history[-lags:])  # Initialize with the last available lags from training data
+    current_history = list(history[-lags:])
     for _ in range(steps):
         x_input = np.array(current_history[-lags:])
-        x_bias = np.insert(x_input, 0, 1)  # Insert bias term
+        x_bias = np.insert(x_input, 0, 1)
         pred = np.dot(model_coeffs, x_bias)
         predictions.append(pred)
-        current_history.append(pred)  # Append the prediction for next forecast step
+        current_history.append(pred)
     return np.array(predictions)
 
 steps = len(test)
@@ -139,4 +144,3 @@ plt.show()
 # Calculate Mean Squared Error (MSE) as an evaluation metric
 mse = np.mean((test - predictions) ** 2)
 print("Mean Squared Error on Test Set:", mse)
-
