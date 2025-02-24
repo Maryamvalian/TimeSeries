@@ -15,7 +15,7 @@ def read_data(filename):
     return np.array(data)
 
 # Update 'data.csv' to your actual CSV file path.
-filename = 'Daily_stocks.csv'
+filename = 'sp500_80_92.csv'
 ts = read_data(filename)
 t = np.arange(len(ts))  # time axis for plotting
 
