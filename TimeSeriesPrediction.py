@@ -2,6 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import csv
 
+
 # -------------------------------
 # 1. Read Time Series Data from CSV
 # -------------------------------
@@ -11,28 +12,22 @@ def read_data(filename):
         reader = csv.reader(file)
         next(reader)  # skip header
         for row in reader:
-            data.append(float(row[1]))  # second column of CSV
+            data.append(float(row[1]))  # use the second column
     return np.array(data)
 
-# Update 'data.csv' to your actual CSV file path.
+
+# Update filename to point to your SP500 CSV file.
 filename = 'sp500_80_92.csv'
 ts = read_data(filename)
-t = np.arange(len(ts))  # time axis for plotting
+t = np.arange(len(ts))
 
-# Plot the original time series
-plt.figure(figsize=(10, 4))
-plt.plot(t, ts, label='Original Time Series')
-plt.title("Original Time Series")
-plt.legend()
-plt.show()
 
 # -------------------------------
 # 2. Remove Trend with a Leaky DC Filter
 # -------------------------------
 def leaky_dc_filter(x, alpha=0.99):
     """
-    Removes the trend from the signal using a leaky integrator filter.
-    The parameter alpha (close to 1) controls how slowly the filter forgets past values.
+    Removes trend using a leaky integrator filter.
     """
     filtered = np.zeros_like(x)
     dc = 0.0
@@ -41,22 +36,16 @@ def leaky_dc_filter(x, alpha=0.99):
         filtered[i] = x[i] - dc
     return filtered
 
+
 ts_detrended = leaky_dc_filter(ts, alpha=0.99)
 
-# Plot the detrended series
-plt.figure(figsize=(10, 4))
-plt.plot(t, ts_detrended, label='Detrended Time Series')
-plt.title("Time Series after Leaky DC Filter (Trend Removal)")
-plt.legend()
-plt.show()
 
 # -------------------------------
 # 3. Remove Seasonality by Folding
 # -------------------------------
 def remove_seasonality(ts, period):
     """
-    Removes seasonality by computing the average seasonal pattern over the data.
-    Returns the deseasonalized time series and the seasonal pattern.
+    Removes seasonality by computing the average seasonal pattern and subtracting it.
     """
     seasonal = np.zeros(period)
     counts = np.zeros(period)
@@ -67,80 +56,110 @@ def remove_seasonality(ts, period):
     deseasonalized = np.array([ts[i] - seasonal[i % period] for i in range(len(ts))])
     return deseasonalized, seasonal
 
-# Set the seasonal period; adjust as needed for your data.
-seasonal_period = 24
+
+# For SP500 data, seasonality might be subtle.
+# Here we assume a period (e.g., 5 for weekly patterns) – adjust as needed.
+seasonal_period = 5
 ts_deseasonalized, seasonal_pattern = remove_seasonality(ts_detrended, seasonal_period)
 
-# Plot the deseasonalized series
-plt.figure(figsize=(10, 4))
-plt.plot(t, ts_deseasonalized, label='Deseasonalized Time Series')
-plt.title("Time Series after Removing Seasonality")
+# -------------------------------
+# 4. Plot Original, Trend-Removed, and Seasonality-Removed Series Together
+# -------------------------------
+plt.figure(figsize=(12, 6))
+plt.plot(t, ts, label='Original', color='blue', alpha=0.7)
+plt.plot(t, ts_detrended, label='Trend Removed', color='orange', alpha=0.7)
+plt.plot(t, ts_deseasonalized, label='Seasonality Removed', color='green', alpha=0.7)
+plt.title("SP500: Original, Trend Removed, and Seasonality Removed")
+plt.xlabel("Time Index")
 plt.legend()
 plt.show()
 
 # -------------------------------
-# 4. Set Up Training/Test Split
+# 5. Prepare Training/Test Split
 # -------------------------------
-train_size = int(len(ts_deseasonalized) * 0.75)
-train, test = ts_deseasonalized[:train_size], ts_deseasonalized[train_size:]
+# Leave the last 20 points for testing.
+K = 20
+train = ts_deseasonalized[:-K]
+test = ts_deseasonalized[-K:]
+
 
 # -------------------------------
-# 5. Forecasting with a Simple Linear Autoregressive Model
+# 6. Estimate Autocorrelation for the Training Data
 # -------------------------------
-def create_lagged_features(data, lags):
+def autocorrelation(x, p):
     """
-    Constructs lagged features from the time series data.
-    Returns matrix X (each row contains 'lags' previous values) and the target y.
+    Computes autocorrelation for lags 0 to p.
     """
-    X, y = [], []
-    for i in range(lags, len(data)):
-        X.append(data[i-lags:i])
-        y.append(data[i])
-    return np.array(X), np.array(y)
+    n = len(x)
+    r = np.zeros(p + 1)
+    for lag in range(p + 1):
+        r[lag] = np.sum(x[:n - lag] * x[lag:]) / n
+    return r
 
-lags = 5
-X_train, y_train = create_lagged_features(train, lags)
 
-def fit_linear_regression(X, y):
-    """
-    Fits a linear regression model to predict y from lagged features in X.
-    Returns coefficients including an intercept (bias) term.
-    """
-    X_bias = np.column_stack([np.ones(X.shape[0]), X])
-    coeffs, _, _, _ = np.linalg.lstsq(X_bias, y, rcond=None)
-    return coeffs
+p_order = 5  # AR model order
+r = autocorrelation(train, p_order)
 
-coeffs = fit_linear_regression(X_train, y_train)
-print("Fitted coefficients (bias and lags):", coeffs)
+# -------------------------------
+# 7. Solve the Yule–Walker Equations (Linear Predictive Coding)
+# -------------------------------
+# Build the Toeplitz autocorrelation matrix R.
+R = np.empty((p_order, p_order))
+for i in range(p_order):
+    for j in range(p_order):
+        R[i, j] = r[abs(i - j)]
 
-def forecast(model_coeffs, history, lags, steps):
+# Right-hand side vector (lags 1 to p_order)
+r_vector = r[1:p_order + 1]
+
+# Solve for AR coefficients.
+ar_coeffs = np.linalg.solve(R, r_vector)
+print("Estimated AR coefficients:", ar_coeffs)
+
+
+# -------------------------------
+# 8. Forecasting Using the AR Model via Yule–Walker
+# -------------------------------
+def ar_forecast(train, ar_coeffs, steps):
     """
-    Performs iterative one-step-ahead forecasting.
-    Starts with the last 'lags' values from history and forecasts 'steps' ahead.
+    Iterative one-step-ahead forecasting using the AR coefficients.
+    The model is assumed to be: x[t] = a1*x[t-1] + a2*x[t-2] + ... + a_p*x[t-p]
     """
+    p = len(ar_coeffs)
+    # Initialize history with the last p values from training.
+    history = list(train[-p:])
     predictions = []
-    current_history = list(history[-lags:])
     for _ in range(steps):
-        x_input = np.array(current_history[-lags:])
-        x_bias = np.insert(x_input, 0, 1)
-        pred = np.dot(model_coeffs, x_bias)
+        # The most recent value is history[-1], then history[-2], etc.
+        # Compute prediction: dot product with AR coefficients (order: a1 multiplies x[t-1], etc.)
+        recent = history[-1:-p - 1:-1]  # reverse order so that recent[0] is x[t-1]
+        pred = np.dot(ar_coeffs, recent)
         predictions.append(pred)
-        current_history.append(pred)
+        history.append(pred)
     return np.array(predictions)
 
-steps = len(test)
-predictions = forecast(coeffs, train, lags, steps)
+
+# Compute AR model predictions for the test period.
+ar_predictions = ar_forecast(train, ar_coeffs, len(test))
 
 # -------------------------------
-# 6. Plot and Evaluate Forecasts
+# 9. Baseline: Prediction with Random Noise
 # -------------------------------
-plt.figure(figsize=(10, 4))
-plt.plot(np.arange(train_size, len(ts_deseasonalized)), test, label='Actual')
-plt.plot(np.arange(train_size, len(ts_deseasonalized)), predictions, label='Forecast', linestyle='--')
-plt.title("Forecast vs Actual")
+# Generate a random forecast (white noise) with zero mean and same standard deviation as the training residual.
+residual_std = np.std(train - np.mean(train))
+noise_predictions = np.random.normal(0, residual_std, len(test))
+
+# -------------------------------
+# 10. Plot the Forecasts vs Actual Test Data
+# -------------------------------
+test_indices = np.arange(len(ts_deseasonalized) - K, len(ts_deseasonalized))
+
+plt.figure(figsize=(12, 6))
+plt.plot(test_indices, test, label='Actual Test Data', marker='o')
+plt.plot(test_indices, ar_predictions, label='AR Model Predictions', marker='x')
+plt.plot(test_indices, noise_predictions, label='Random Noise Baseline', marker='d')
+plt.title("AR Model Forecast vs Actual Test Data and Random Noise Baseline")
+plt.xlabel("Time Index")
+plt.ylabel("Deseasonalized & Detrended Value")
 plt.legend()
 plt.show()
-
-# Calculate Mean Squared Error (MSE) as an evaluation metric
-mse = np.mean((test - predictions) ** 2)
-print("Mean Squared Error on Test Set:", mse)

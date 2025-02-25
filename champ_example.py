@@ -1,30 +1,32 @@
 import numpy as np
 import matplotlib.pyplot as plt
-
-# Step 1: Define parameters
+#This is a simple example of source localization, we consider that
+# we have only 3 sensors and the source space contains 5 different dipoles
+#Assume the number of time samples is 100
 num_sensors = 3  # Number of MEG sensors
 num_sources = 5  # Number of brain sources
 num_samples = 100  # Number of time samples
 
-# Step 2: Generate random empirical covariance of sensor data (C_B)
+# Generate random empirical covariance of sensor data (C_B)
+#In reality this data is collected from EEG/MEG sensors
 np.random.seed(42)
 C_B_empirical = np.random.rand(num_sensors, num_sensors)
 C_B_empirical = (C_B_empirical + C_B_empirical.T) / 2  # Symmetric matrix
 np.fill_diagonal(C_B_empirical, np.abs(np.diag(C_B_empirical)) + 1)  # Ensure positive-definiteness
 
-# Step 3: Generate leadfield matrix (L)
+# Generate random leadfield matrix (L), in Reallity its based on Maxwell equations
 L = np.random.randn(num_sensors, num_sources)
 
-# Step 4: Define noise covariance (Σ_ε)
+# Define noise covariance (Σ_ε)
 Sigma_epsilon = np.eye(num_sensors) * 0.2  # Small noise variance
 
-# Step 5: Initialize prior covariance C (identity matrix)
+# Initialize prior covariance C (identity matrix)
 C_prior = np.eye(num_sources)
 
-# Step 6: Compute initial modeled covariance Σ_B = Σ_ε + L C L^T
+# Compute initial modeled covariance Σ_B = Σ_ε + L C L^T
 Sigma_B = Sigma_epsilon + L @ C_prior @ L.T
 
-# Step 7: Iterative optimization of C using ML-II with regularization and smoothing
+#Iterative optimization of C using ML-II with regularization and smoothing
 log_marginal_likelihoods = []
 alpha = 0.9  # Smoothing factor
 lambda_reg = 1e-4  # Regularization factor
@@ -44,7 +46,7 @@ for _ in range(20):  # 20 Iterations to optimize C
     # Recompute Σ_B with updated C_prior
     Sigma_B = Sigma_epsilon + L @ C_prior @ L.T
 
-# Step 8: Display optimization results
+# Display optimization results
 plt.plot(log_marginal_likelihoods, marker='o', linestyle='-')
 plt.xlabel('Iteration')
 plt.ylabel('Log Marginal Likelihood')
