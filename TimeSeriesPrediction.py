@@ -1,10 +1,10 @@
+from lib2to3.fixer_util import Assign
+
 import numpy as np
 import matplotlib.pyplot as plt
 import csv
+#Assignment 3
 
-
-# -------------------------------
-# 1. Read Time Series Data from CSV
 # -------------------------------
 def read_data(filename):
     data = []
