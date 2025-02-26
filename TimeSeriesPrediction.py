@@ -105,7 +105,7 @@ def run_analysis(filename):
     plot_time_series(time, data, detrended, deseasonalized)
 
     # Second part: prediction---------------------------------------
-    train = deseasonalized[:-20]  #all points minus last 20
+    train = deseasonalized[:-20]  #all points except last 20
     test = deseasonalized[-20:]  #last 20 points
 
     coeffs = estimate_ar_coefficients(train, 5)
