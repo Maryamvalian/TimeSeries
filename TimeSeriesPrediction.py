@@ -108,7 +108,7 @@ def run_analysis(filename):
     train = deseasonalized[:-20]  #all points except last 20
     test = deseasonalized[-20:]  #last 20 points
 
-    coeffs = estimate_ar_coefficients(train, 5)
+    coeffs = estimate_ar_coefficients(train, 1000)
     print("Estimated AR coefficients:", coeffs)
     forecast_steps = len(test)
     ar_pred = forecast_ar_model(train, coeffs, forecast_steps)
@@ -122,6 +122,6 @@ def run_analysis(filename):
     print("MSE Baseline:", compute_mse(test, random_pred))
 
 # ----- Main -------------------
-run_analysis("earths rotation.csv")
+#run_analysis("earths rotation.csv") #generate error for high orders, small dataset
 run_analysis("sp500_80_92.csv")
 
