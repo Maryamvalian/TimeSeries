@@ -56,6 +56,7 @@ def crosscorrelation(x, y):
 
     lags = np.arange(-size + 1, size)
     plt.plot(lags, correlation)
+    plt.grid()
     plt.show()
 
 # Main
@@ -69,6 +70,7 @@ data = generate_sin(size, amplitude, frequency, sampling_frequency)
 noisy_data = add_noise(data, mean=0, std=1)
 plt.plot(data)
 plt.plot(noisy_data, color='orange')
+plt.grid()
 plt.show()
 crosscorrelation(data, noisy_data)
 
@@ -79,8 +81,9 @@ plt.plot(data2,color='blue')
 plt.plot(noisy_data2,color='orange')
 plt.xlim(0,1000)
 plt.ylim(50,200)
+plt.grid()
 plt.show()
-crosscorrelation(data2, noisy_data2)
+crosscorrelation(data2, data2)
 
 
 
