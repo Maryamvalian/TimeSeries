@@ -108,7 +108,8 @@ def run_analysis(filename):
     train = deseasonalized[:-20]  #all points except last 20
     test = deseasonalized[-20:]  #last 20 points
     #The order is extracted from Auto-correlation figure
-    # the figure reaches to zero around 1200. to avoid overfitting Around 1000 will be good
+    # the figure reaches to zero around 1200.
+    # To avoid overfitting, Order will be 1000
     coeffs = estimate_ar_coefficients(train, 1000)
     print("Estimated AR coefficients:", coeffs)
     forecast_steps = len(test)
