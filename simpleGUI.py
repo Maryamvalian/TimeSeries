@@ -1,5 +1,5 @@
 from tkinter import *
-
+# read string from textbox
 root = Tk()
 
 e = Entry(root, width=80)
