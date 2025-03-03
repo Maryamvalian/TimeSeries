@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import csv
-#  Asignment 1 :
+#
 #    Part 1: generate sine data with a,f,fs, size (amplitude,frequency, sample-frequency, size) and add noise
 #    part 2: read data from csv file
 #    part 3: cross-correlation function where cross correlation_X,Y[k]=sigma(X[n].Y[n+k])
