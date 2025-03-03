@@ -1,6 +1,6 @@
 import numpy as np
 
-# Function to calculate coefficients
+#
 def find_coefficients(v0, v1, v2, v3, y):
     # Create a matrix of the vectors
     matrix = np.array([v0, v1, v2, v3]).T  # Transpose to align vectors as columns
