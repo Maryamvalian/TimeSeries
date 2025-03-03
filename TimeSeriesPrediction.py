@@ -3,8 +3,11 @@ import matplotlib.pyplot as plt
 import csv
 
 #Assignment 3:
-#  first part: removing trend and seasonality
-#  Second part: prediction with AR Model (test set: last 20 points)
+#  first part: Removing trend and seasonality
+#  Second part: Prediction with AR Model (test set: last 20 points)
+#               Order is considered as  1000, From Auto correlation figure we can see that
+#               At 1200 it reaches to zero, so around 1000 is a good estimate.
+# Third : compare MSE for random prediction and our model.
 
 
 def read_data(filename):
@@ -33,14 +36,14 @@ def leaky_dc_filter(x, alpha=0.99):
 # ----- Seasonality Removal -----
 def remove_seasonality(data, period):
 
-    pattern = np.zeros(period) #seasonality
+    seasonality = np.zeros(period)
     count = np.zeros(period)
     for i in range(len(data)):
-        pattern[i % period] += data[i]
+        seasonality[i % period] += data[i]
         count[i % period] += 1
-    pattern /= count
-    deseasonalized = np.array([data[i] - pattern[i % period] for i in range(len(data))])
-    return deseasonalized, pattern
+    seasonality /= count
+    deseasonalized = np.array([data[i] - seasonality[i % period] for i in range(len(data))])
+    return deseasonalized, seasonality
 
 
 # -------------------------------------------------------
@@ -107,9 +110,10 @@ def run_analysis(filename):
     # Second part: prediction---------------------------------------
     train = deseasonalized[:-20]  #all points except last 20
     test = deseasonalized[-20:]  #last 20 points
-    #The order is extracted from Auto-correlation figure
-    # the figure reaches to zero around 1200.
+
+    #The order is extracted from Auto-correlation figure the figure reaches to zero around 1200.
     # To avoid overfitting, Order will be 1000.
+
     coeffs = estimate_ar_coefficients(train, 1000)
     print("Estimated AR coefficients:", coeffs)
     forecast_steps = len(test)
@@ -124,6 +128,6 @@ def run_analysis(filename):
     print("MSE Baseline:", compute_mse(test, random_pred))
 
 # ----- Main -------------------
-#run_analysis("earths rotation.csv") #generate error for high orders, small dataset
+#run_analysis("earths rotation.csv") #small data set:generate error for high orders
 run_analysis("sp500_80_92.csv")
 
