@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 #This is a simple example of source localization, we consider that
-# we have only 3 sensors and the source space contains 5 different dipoles
+# we have only 3 sensors and the source space contains 5 different dipoles sources
 #Assume the number of time samples is 100
 num_sensors = 3  # Number of MEG sensors
 num_sources = 5  # Number of brain sources
