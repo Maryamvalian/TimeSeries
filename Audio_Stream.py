@@ -2,7 +2,7 @@ import numpy as np
 import soundfile as sf
 from scipy.fft import fft
 import matplotlib.pyplot as plt
-# Assignment 2- CAS748
+# Audio streaming- input: audio file, window size, stride
 #short time fourier transform
 
 def read_audio(file_path):
