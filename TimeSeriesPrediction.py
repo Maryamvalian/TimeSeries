@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import csv
+from scipy.fft import fft, fftfreq
 
 #Assignment 3:
 #  first part: Removing trend and seasonality
@@ -34,29 +35,32 @@ def leaky_dc_filter(x, alpha=0.99):
     return detrended
 
 # ----- Seasonality Removal -----
-def remove_seasonality(data, period):
 
+def remove_seasonality(data, period):
+    period = int(period)
     seasonality = np.zeros(period)
     count = np.zeros(period)
     for i in range(len(data)):
         seasonality[i % period] += data[i]
         count[i % period] += 1
     seasonality /= count
-    deseasonalized = np.array([data[i] - seasonality[i % period] for i in range(len(data))])
+    deseasonalized = np.array([])
+    for i in range(len(data)):
+        deseasonalized = np.append(deseasonalized, data[i] - seasonality[i % period])
     return deseasonalized, seasonality
 
 
 # -------------------------------------------------------
 def plot_time_series(time, original, detrended, deseasonalized):
-    plt.plot(time, original, label="Original", color="blue", alpha=0.7)
-    plt.plot(time, detrended, label="Trend Removed", color="orange", alpha=0.7)
-    plt.plot(time, deseasonalized, label="Seasonality Removed", color="green", alpha=0.7)
+    plt.plot(time, original, label="Original", color="blue")
+    plt.plot(time, detrended, label="Trend Removed", color="orange")
+    plt.plot(time, deseasonalized, label="Seasonality Removed", color="green")
     plt.legend()
     plt.show()
 
 def plot_forecast(test_time, actual, predicted, baseline):
 
-    plt.plot(test_time, actual, label="Actual Data", marker="o", color="blue")
+    plt.plot(test_time, actual, label="Ground Truth", marker="o", color="blue")
     plt.plot(test_time, predicted, label="AR Model Forecast", marker="x", color="red")
     plt.plot(test_time, baseline, label="Random Noise Forecast", marker="d", color="purple")
     plt.legend()
@@ -80,18 +84,19 @@ def estimate_ar_coefficients(data, order):
     for i in range(order):
         for j in range(order):
             R[i, j] = ac[abs(i - j)]
-    r_vec = ac[1:order + 1]
-    coefficients = np.linalg.solve(R, r_vec)
+    v = ac[1:order + 1]
+    #Linalg is a Numpy library to solve R.x=v
+    coefficients = np.linalg.solve(R, v)
     return coefficients
 
 #----------------------------------------------------
 def forecast_ar_model(train, coeffs, steps):
 
     p = len(coeffs)
-    history = list(train[-p:])  # Start with the last p data points(Test Set)
+    history = list(train[-p:])  # last p data points(Test Set)
     predictions = []
     for _ in range(steps):
-        recent = history[-p:][::-1]  # Reverse so that newest value comes first
+        recent = history[-p:][::-1]  # newest value comes first
         next_val = np.dot(coeffs, recent)
         predictions.append(next_val)
         history.append(next_val)
@@ -104,15 +109,15 @@ def run_analysis(filename):
     data = read_data(filename)
     time = np.arange(len(data))
     detrended = leaky_dc_filter(data, alpha=0.99)
-    deseasonalized, _ = remove_seasonality(detrended, 5)
+    deseasonalized, _ = remove_seasonality(detrended, 500)
     plot_time_series(time, data, detrended, deseasonalized)
 
     # Second part: prediction---------------------------------------
     train = deseasonalized[:-20]  #all points except last 20
     test = deseasonalized[-20:]  #last 20 points
 
-    #The order is extracted from Auto-correlation figure the figure reaches to zero around 1200.
-    # To avoid overfitting, Order will be 1000.
+    #The order is extracted from Auto-correlation figure (First Assignment) the figure reaches to zero around 1200.
+    # To avoid overfitting, we will consider order as 1000.
 
     coeffs = estimate_ar_coefficients(train, 1000)
     print("Estimated AR coefficients:", coeffs)
@@ -123,11 +128,11 @@ def run_analysis(filename):
     random_pred = np.random.normal(0, noise_std, forecast_steps)
     test_time = np.arange(len(deseasonalized) - 20, len(deseasonalized))
     plot_forecast(test_time, test, ar_pred, random_pred)
-
+    #Third Step: compare Error------------------------------------------------------
     print("MSE AR Model:", compute_mse(test, ar_pred))
     print("MSE Baseline:", compute_mse(test, random_pred))
 
 # ----- Main -------------------
-#run_analysis("earths rotation.csv") #small data set:generate error for high orders
+
 run_analysis("sp500_80_92.csv")
 
