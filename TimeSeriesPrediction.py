@@ -1,7 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import csv
-from scipy.fft import fft, fftfreq
 
 #Assignment 3:
 #  first part: Removing trend and seasonality
@@ -24,16 +23,28 @@ def compute_mse(actual, predicted):
     return np.mean((actual - predicted) ** 2)
 
 
-# ----- Trend Removal----------------
-def leaky_dc_filter(x, alpha=0.99):
 
-    detrended = np.zeros_like(x)
-    dc = 0.0
-    for i in range(len(x)):
-        dc = alpha * dc + (1 - alpha) * x[i]
-        detrended[i] = x[i] - dc
-    return detrended
+#----------Remove trend: FIR filter-----
+# size is the half of window, Num is size of data
+def rem_trend(data, size, num):
+    out_d = np.zeros(num)
+    for n in range(num):
+        tmp = 0.0
+        reduce = 0
 
+        for i in range(-size, size):
+            if (n + i < 0) or (n + i >= num): # if out of bond
+                reduce += 1
+            else:   # valid data point
+                tmp += data[n + i]
+
+        tmp /= (2 * size + 1 - reduce)   #average
+        out_d[n] = tmp
+        detrendd = np.array([])
+        for i in range(len(data)):
+            detrendd = np.append(detrendd, data[i] -out_d[i] )
+
+    return detrendd
 # ----- Seasonality Removal -----
 
 def remove_seasonality(data, period):
@@ -105,14 +116,16 @@ def forecast_ar_model(train, coeffs, steps):
 
 #-------------------------------------
 def run_analysis(filename):
-     # First Part: remove trend and seasonality---------------------
+     # First Part: remove trend and seasonality----------
+
     data = read_data(filename)
     time = np.arange(len(data))
-    detrended = leaky_dc_filter(data, alpha=0.99)
-    deseasonalized, _ = remove_seasonality(detrended, 500)
+    detrended=rem_trend(data, 30, len(data))     #small size preserves local fluctuations
+    deseasonalized, _ = remove_seasonality(detrended, 15)
     plot_time_series(time, data, detrended, deseasonalized)
 
     # Second part: prediction---------------------------------------
+
     train = deseasonalized[:-20]  #all points except last 20
     test = deseasonalized[-20:]  #last 20 points
 
@@ -123,12 +136,13 @@ def run_analysis(filename):
     print("Estimated AR coefficients:", coeffs)
     forecast_steps = len(test)
     ar_pred = forecast_ar_model(train, coeffs, forecast_steps)
-    # random noise
+
     noise_std = np.std(train - np.mean(train))
     random_pred = np.random.normal(0, noise_std, forecast_steps)
     test_time = np.arange(len(deseasonalized) - 20, len(deseasonalized))
     plot_forecast(test_time, test, ar_pred, random_pred)
     #Third Step: compare Error------------------------------------------------------
+
     print("MSE AR Model:", compute_mse(test, ar_pred))
     print("MSE Baseline:", compute_mse(test, random_pred))
 

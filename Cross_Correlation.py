@@ -75,7 +75,7 @@ plt.show()
 crosscorrelation(data, noisy_data)
 
 #Read From Given Dataset
-data2 = read_data("Daily_stocks.csv")
+data2 = read_data("sp500_80_92.csv")
 noisy_data2=add_noise(data2,mean=0,std=1)
 plt.plot(data2,color='blue')
 plt.plot(noisy_data2,color='orange')
