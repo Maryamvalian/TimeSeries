@@ -7,7 +7,7 @@ import csv
 #  Second part: Prediction with AR Model (test set: last 20 points)
 #               Order is considered as  1000, From Auto correlation figure we can see that
 #               At 1200 it reaches to zero, so around 1000 is a good estimate.
-# Third part: compare MSE for random prediction and our model.
+# Third part: compare MSE for random prediction and our model.(AR model)
 
 
 def read_data(filename):
