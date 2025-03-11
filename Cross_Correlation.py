@@ -6,17 +6,17 @@ import csv
 #    part 2: read data from csv file
 #    part 3: cross-correlation function where cross correlation_X,Y[k]=sigma(X[n].Y[n+k])
 
-#part 1
+#-----------------------------------------------------------------
 def generate_sin(size, a, f, fs):
     n = np.arange(size)            #sample numbers [0,12,..,999] if size=1000
-    data = amplitude * np.sin(2 * np.pi * frequency * n / sampling_frequency)
+    data = a * np.sin(2 * np.pi * f * n / fs)
     return  data
-
+#----------------------------------------------------
 def add_noise(data, mean=0, std=1):
     noise = np.random.normal(mean, std, size=len(data))
     return data + noise
 
-#part2
+#----------------------------------------
 def read_data(filename):
     data = []
     with open(filename, 'r') as file:
@@ -25,7 +25,8 @@ def read_data(filename):
         for row in reader:
             data.append(float(row[1]))  #second column of csv
     return np.array(data)
-#part 3
+
+#-------------------------------------------------------------------------
 def crosscorrelation(x, y):
 
     x = np.array(x)
@@ -59,30 +60,29 @@ def crosscorrelation(x, y):
     plt.grid()
     plt.show()
 
-# Main
+# -------------------------Main------------------
 
-#generate sin data and add noise
-size = 1000
-amplitude = 2.0
-frequency = 5.0
-sampling_frequency = 100.0
-data = generate_sin(size, amplitude, frequency, sampling_frequency)
+#part 1
+
+data = generate_sin(1000, 2.0, 5.0, 100.0)
 noisy_data = add_noise(data, mean=0, std=1)
 plt.plot(data)
 plt.plot(noisy_data, color='orange')
-plt.grid()
 plt.show()
+
+#part 3
 crosscorrelation(data, noisy_data)
 
-#Read From Given Dataset
+#part 2
 data2 = read_data("sp500_80_92.csv")
 noisy_data2=add_noise(data2,mean=0,std=1)
 plt.plot(data2,color='blue')
 plt.plot(noisy_data2,color='orange')
 plt.xlim(0,1000)
 plt.ylim(50,200)
-plt.grid()
 plt.show()
+
+#part 3
 crosscorrelation(data2, data2)
 
 
