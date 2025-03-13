@@ -39,5 +39,5 @@ def process_audio(file_path, window_size, stride):
 
 
 #--------Main----------------------
-process_audio("a440.wav", 512, 128)      #Testcase
-process_audio("in5.wav", 256, 16)
+process_audio("Audio/sinusoid.wav", 512, 128)      #Testcase
+process_audio("Audio/in5.wav", 256, 16)
